@@ -146,10 +146,6 @@ export default function PanoramaViewer() {
         <PanoramaCamera />
       </Canvas>
 
-      {/* Credits */}
-      <div className="absolute bottom-5 right-5 z-10 bg-black bg-opacity-70 text-white text-xs p-3 rounded-lg">
-        <p>Tanmay & Irika Austin Demo</p>
-      </div>
     </div>
   );
 }
