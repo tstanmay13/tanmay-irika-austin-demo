@@ -59,7 +59,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
             video.playbackRate = 1.5;
           }}
         >
-          <source src="/austin-night.mp4" type="video/mp4" />
+          <source src="/austin-night-compressed.mp4" type="video/mp4" />
           {/* Fallback to image if video doesn't load */}
           <div
             className="absolute inset-0 bg-cover bg-center"
