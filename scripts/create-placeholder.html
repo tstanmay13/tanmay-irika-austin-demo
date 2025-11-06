@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Austin Panorama Placeholder Generator</title>
+</head>
+<body>
+    <h1>Generate Placeholder Panorama</h1>
+    <p>This will create a temporary panorama image for testing. Right-click and save as "austin-panorama.jpg" in the public folder.</p>
+    <button onclick="generatePanorama()">Generate Placeholder</button>
+    <br><br>
+    <canvas id="canvas" width="4096" height="2048"></canvas>
+
+    <script>
+        function generatePanorama() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Sky gradient (top half)
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, 1024);
+            skyGradient.addColorStop(0, '#1e3a8a');  // Dark blue
+            skyGradient.addColorStop(0.5, '#3b82f6'); // Blue
+            skyGradient.addColorStop(1, '#60a5fa');   // Light blue
+
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, 4096, 1024);
+
+            // Ground/water (bottom half)
+            const groundGradient = ctx.createLinearGradient(0, 1024, 0, 2048);
+            groundGradient.addColorStop(0, '#059669');  // Teal (water)
+            groundGradient.addColorStop(0.3, '#10b981'); // Green
+            groundGradient.addColorStop(1, '#065f46');   // Dark green (grass)
+
+            ctx.fillStyle = groundGradient;
+            ctx.fillRect(0, 1024, 4096, 1024);
+
+            // Draw simplified Austin buildings
+            const buildings = [
+                { x: 1500, y: 700, w: 100, h: 350, color: '#1f2937' },
+                { x: 1650, y: 600, w: 120, h: 450, color: '#374151' },
+                { x: 1820, y: 650, w: 90, h: 400, color: '#1f2937' },
+                { x: 1950, y: 720, w: 110, h: 330, color: '#4b5563' },
+                { x: 2100, y: 680, w: 100, h: 370, color: '#374151' },
+                { x: 2250, y: 550, w: 140, h: 500, color: '#1f2937' }, // Frost Bank Tower
+                { x: 2440, y: 700, w: 95, h: 350, color: '#4b5563' },
+            ];
+
+            buildings.forEach(building => {
+                // Building body
+                ctx.fillStyle = building.color;
+                ctx.fillRect(building.x, building.y, building.w, building.h);
+
+                // Windows
+                ctx.fillStyle = '#fbbf24';
+                for (let i = 0; i < Math.floor(building.h / 30); i++) {
+                    for (let j = 0; j < Math.floor(building.w / 20); j++) {
+                        if (Math.random() > 0.3) {
+                            ctx.fillRect(building.x + j * 20 + 5, building.y + i * 30 + 10, 10, 15);
+                        }
+                    }
+                }
+            });
+
+            // Add text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 60px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('AUSTIN SKYLINE', 2048, 400);
+            ctx.font = '40px Arial';
+            ctx.fillText('Placeholder - Replace with Real Panorama', 2048, 500);
+
+            // Add sun
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(3500, 300, 80, 0, Math.PI * 2);
+            ctx.fill();
+
+            alert('Placeholder generated! Right-click the canvas and "Save Image As..." to save as austin-panorama.jpg in the public folder.');
+        }
+    </script>
+</body>
+</html>
