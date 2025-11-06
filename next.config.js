@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: process.env.NODE_ENV === 'production' ? '/tanmay-irika-austin' : '',
-  output: 'export',
+  // Remove basePath - deploy at root for Vercel
   images: {
     unoptimized: true,
   },
