@@ -2,48 +2,123 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, useTexture } from '@react-three/drei';
+import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
 function PanoramaSphere() {
   const texture = useTexture('/austin-panorama.jpg');
+  const { gl } = useThree();
 
   useEffect(() => {
-    // Configure texture for equirectangular panorama
+    // Configure texture with HIGH QUALITY settings for equirectangular panorama
     texture.colorSpace = THREE.SRGBColorSpace;
-  }, [texture]);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.repeat.set(1, 1);
+
+    // Use mipmaps for better quality at all zoom levels
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = true;
+
+    // Maximum anisotropic filtering for sharpness
+    texture.anisotropy = gl.capabilities.getMaxAnisotropy();
+
+    // Ensure texture updates with new settings
+    texture.needsUpdate = true;
+  }, [texture, gl]);
 
   return (
-    <mesh scale={[-1, 1, 1]}>
-      <sphereGeometry args={[500, 60, 40]} />
-      <meshBasicMaterial map={texture} side={THREE.BackSide} />
+    <mesh rotation={[0, Math.PI, 0]}>
+      <sphereGeometry args={[500, 120, 60]} />
+      <meshBasicMaterial
+        map={texture}
+        side={THREE.BackSide}
+        toneMapped={false}
+        color={new THREE.Color(1.5, 1.5, 1.5)}
+      />
     </mesh>
   );
 }
 
-function CameraController() {
-  const { camera } = useThree();
+function PanoramaCamera() {
+  const { camera, gl } = useThree();
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const [lon, setLon] = useState(0);
+  const [lat, setLat] = useState(0);
+
+  const onPointerDownRef = useRef({ x: 0, y: 0, lon: 0, lat: 0 });
 
   useEffect(() => {
-    // Set initial camera position to face the most interesting part (roughly center-front)
-    camera.position.set(0, 0, 0.1);
-    camera.rotation.set(0, 0, 0);
-  }, [camera]);
+    const onPointerDown = (event: PointerEvent) => {
+      setIsUserInteracting(true);
+      onPointerDownRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+        lon: lon,
+        lat: lat
+      };
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (isUserInteracting) {
+        const newLon = (onPointerDownRef.current.x - event.clientX) * 0.1 + onPointerDownRef.current.lon;
+        const newLat = (event.clientY - onPointerDownRef.current.y) * 0.1 + onPointerDownRef.current.lat;
+        setLon(newLon);
+        setLat(Math.max(-85, Math.min(85, newLat)));
+      }
+    };
+
+    const onPointerUp = () => {
+      setIsUserInteracting(false);
+    };
+
+    const onWheel = (event: WheelEvent) => {
+      if ('fov' in camera) {
+        const fov = (camera.fov as number) + event.deltaY * 0.05;
+        (camera as THREE.PerspectiveCamera).fov = Math.max(10, Math.min(75, fov));
+        camera.updateProjectionMatrix();
+      }
+    };
+
+    gl.domElement.addEventListener('pointerdown', onPointerDown);
+    gl.domElement.addEventListener('pointermove', onPointerMove);
+    gl.domElement.addEventListener('pointerup', onPointerUp);
+    gl.domElement.addEventListener('wheel', onWheel);
+
+    return () => {
+      gl.domElement.removeEventListener('pointerdown', onPointerDown);
+      gl.domElement.removeEventListener('pointermove', onPointerMove);
+      gl.domElement.removeEventListener('pointerup', onPointerUp);
+      gl.domElement.removeEventListener('wheel', onWheel);
+    };
+  }, [isUserInteracting, lon, lat, camera, gl]);
+
+  useFrame(() => {
+    // Convert spherical coordinates to cartesian
+    const phi = THREE.MathUtils.degToRad(90 - lat);
+    const theta = THREE.MathUtils.degToRad(lon);
+
+    const x = 500 * Math.sin(phi) * Math.cos(theta);
+    const y = 500 * Math.cos(phi);
+    const z = 500 * Math.sin(phi) * Math.sin(theta);
+
+    camera.lookAt(x, y, z);
+  });
 
   return null;
 }
 
 export default function PanoramaViewer() {
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const controlsRef = useRef<any>(null);
 
   return (
     <div className="relative w-screen h-screen">
       {/* Info Overlay */}
-      <div className="absolute top-5 left-5 z-10 bg-black bg-opacity-70 text-white p-4 rounded-lg max-w-sm">
-        <h1 className="text-xl font-bold mb-2">Austin Skyline from Auditorium Shores</h1>
-        <p className="text-sm mb-1">🖱️ Drag to pan around</p>
+      <div className="absolute top-5 left-5 z-10 bg-black bg-opacity-80 text-white p-4 rounded-lg max-w-sm backdrop-blur-sm">
+        <h1 className="text-xl font-bold mb-2">🌃 Austin Skyline at Night</h1>
+        <p className="text-xs text-gray-300 mb-2">Auditorium Shores • 360° Panorama</p>
+        <p className="text-sm mb-1">🖱️ Drag to look around</p>
         <p className="text-sm">🔍 Scroll to zoom</p>
       </div>
 
@@ -54,44 +129,21 @@ export default function PanoramaViewer() {
         </div>
       )}
 
-      {/* Error Message */}
-      {error && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 bg-red-900 bg-opacity-90 text-white px-8 py-4 rounded-lg max-w-md">
-          <div className="text-lg font-bold mb-2">Error Loading Panorama</div>
-          <div className="text-sm">{error}</div>
-          <div className="text-xs mt-2">Please ensure austin-panorama.jpg is in the public folder</div>
-        </div>
-      )}
-
       {/* 3D Canvas */}
       <Canvas
         camera={{
           fov: 75,
-          near: 0.1,
-          far: 1000,
-          position: [0, 0, 0.1],
+          near: 1,
+          far: 1100,
+          position: [0, 0, 0],
         }}
-        onCreated={() => setIsLoading(false)}
+        onCreated={({ gl }) => {
+          gl.setPixelRatio(window.devicePixelRatio);
+          setIsLoading(false);
+        }}
       >
-        <CameraController />
-
-        {/* OrbitControls for smooth drag-to-pan and zoom */}
-        <OrbitControls
-          ref={controlsRef}
-          enableZoom={true}
-          enablePan={false}
-          enableDamping={true}
-          dampingFactor={0.05}
-          rotateSpeed={-0.5}
-          zoomSpeed={0.8}
-          minDistance={1}
-          maxDistance={400}
-          // Limit vertical rotation to prevent flipping
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={(3 * Math.PI) / 4}
-        />
-
         <PanoramaSphere />
+        <PanoramaCamera />
       </Canvas>
 
       {/* Credits */}
