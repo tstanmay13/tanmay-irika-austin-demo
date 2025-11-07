@@ -114,7 +114,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          Stars, lamb chops, city.
+          Stars, lights, lamb chops.
         </p>
 
         {/* CTA Button */}
